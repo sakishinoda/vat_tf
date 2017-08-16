@@ -32,6 +32,10 @@ tf.app.flags.DEFINE_string('method', 'vat', "{vat, vatent, baseline}")
 
 if FLAGS.dataset == 'cifar10':
     from cifar10 import inputs, unlabeled_inputs
+elif FLAGS.dataset == 'mnist':
+    from mnist import inputs, unlabeled_inputs
+elif FLAGS.dataset == 'cifar100':
+    from cifar100 import inputs, unlabeled_inputs
 elif FLAGS.dataset == 'svhn':
     from svhn import inputs, unlabeled_inputs 
 else: 
@@ -92,7 +96,7 @@ def build_eval_graph(x, y, ul_x):
 
 
 def main(_):
-    print(FLAGS.epsilon, FLAGS.top_bn)
+    print(FLAGS.epsilon)
     numpy.random.seed(seed=FLAGS.seed)
     tf.set_random_seed(numpy.random.randint(1234))
     with tf.Graph().as_default() as g:

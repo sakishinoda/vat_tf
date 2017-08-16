@@ -3,17 +3,17 @@ import numpy
 import sys, os
 
 import layers as L
-import cnn
+import mlp
 
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_float('epsilon', 8.0, "norm length for (virtual) adversarial training ")
 tf.app.flags.DEFINE_integer('num_power_iterations', 1, "the number of power iterations")
 tf.app.flags.DEFINE_float('xi', 1e-6, "small constant for finite difference")
-
+tf.app.flags.DEFINE_string('dist', 'KL', "{KL, FM}")
 
 def logit(x, is_training=True, update_batch_stats=True, stochastic=True, seed=1234):
-    return cnn.logit(x, is_training=is_training,
+    return mlp.logit(x, is_training=is_training,
                      update_batch_stats=update_batch_stats,
                      stochastic=stochastic,
                      seed=seed)
@@ -36,14 +36,23 @@ def get_normalized_vector(d):
     return d
 
 
-def generate_virtual_adversarial_perturbation(x, logit, is_training=True):
+def distance(q_logit, p_logit):
+    if FLAGS.dist == 'KL':
+        return L.kl_divergence_with_logit(q_logit, p_logit)
+    elif FLAGS.dist == 'FM':
+        return L.mean_feature_matching(q_logit, p_logit)
+    else:
+        raise NotImplementedError
+
+
+def generate_virtual_adversarial_perturbation(x, logit, fn, is_training=True):
     d = tf.random_normal(shape=tf.shape(x))
 
     for _ in range(FLAGS.num_power_iterations):
         d = FLAGS.xi * get_normalized_vector(d)
         logit_p = logit
-        logit_m = forward(x + d, update_batch_stats=False, is_training=is_training)
-        dist = L.kl_divergence_with_logit(logit_p, logit_m)
+        logit_m = fn(x + d, update_batch_stats=False, is_training=is_training)
+        dist = distance(logit_p, logit_m)
         grad = tf.gradients(dist, [d], aggregation_method=2)[0]
         d = tf.stop_gradient(grad)
 
@@ -51,11 +60,20 @@ def generate_virtual_adversarial_perturbation(x, logit, is_training=True):
 
 
 def virtual_adversarial_loss(x, logit, is_training=True, name="vat_loss"):
-    r_vadv = generate_virtual_adversarial_perturbation(x, logit, is_training=is_training)
+    if FLAGS.dist=='FM':
+        def fn(x, is_training, update_batch_stats, seed=1234):
+            return mlp.logit(x, is_training=is_training,
+                     update_batch_stats=update_batch_stats,
+                     stochastic=True, return_before_output=True,
+                     seed=seed) 
+        logit = fn(x, is_training=is_training, update_batch_stats=False)
+    else:
+        fn = forward 
+    r_vadv = generate_virtual_adversarial_perturbation(x, logit, fn, is_training=is_training)
     logit = tf.stop_gradient(logit)
     logit_p = logit
-    logit_m = forward(x + r_vadv, update_batch_stats=False, is_training=is_training)
-    loss = L.kl_divergence_with_logit(logit_p, logit_m)
+    logit_m = fn(x + r_vadv, update_batch_stats=False, is_training=is_training)
+    loss = distance(logit_p, logit_m)
     return tf.identity(loss, name=name)
 
 
