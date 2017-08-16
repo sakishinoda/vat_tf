@@ -127,7 +127,7 @@ def prepare_dataset():
     examples_per_class = int(FLAGS.num_labeled_examples / 10)
     labeled_train_images = np.zeros((FLAGS.num_labeled_examples, 784), dtype=np.float32)
     labeled_train_labels = np.zeros((FLAGS.num_labeled_examples), dtype=np.int64)
-    for i in xrange(10):
+    for i in range(10):
         ind = np.where(_train_labels == i)[0]
         labeled_train_images[i * examples_per_class:(i + 1) * examples_per_class] \
             = _train_images[ind[0:examples_per_class]]
