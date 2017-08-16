@@ -9,6 +9,7 @@ tensorflow-gpu 1.1.0, scipy(for ZCA whitening)
 
 ## Preparation of dataset for semi-supervised learning
 On MNIST
+
 ```python mnist.py --data_dir=/tmp/mnist/dataset```
 
 On CIFAR-10
@@ -21,6 +22,7 @@ On SVHN
 
 ## Semi-supervised Learning without augmentation 
 On MNIST
+
 ```python train_semisup.py --dataset=mnist  --data_dir=/tmp/mnist/dataset --log_dir=/tmp/mnist/log --epsilon=5.0 --batchsize=64 --ul_batchsize=256 --method=vat --num_iter_per_epoch=1000 --num_epochs=100 --epoch_decay_start=50 --initial_learning_rate=0.002 --mom1=0.5 --mom2=0.5```
 
 On CIFAR-10
